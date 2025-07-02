@@ -1,0 +1,3291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>学习笔记小程序</title>
+    
+    <!-- PWA配置 -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    
+    <!-- 样式和脚本 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#EC4899',
+                        tertiary: '#10B981',
+                        dark: '#1F2937',
+                        light: '#F3F4F6'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+            .card-flip {
+                transform-style: preserve-3d;
+                transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+            .card-flip-active {
+                transform: rotateY(180deg);
+            }
+            .card-front, .card-back {
+                backface-visibility: hidden;
+            }
+            .card-back {
+                transform: rotateY(180deg);
+            }
+            .progress-bar {
+                transition: width 0.5s ease-in-out;
+            }
+            .tag-badge {
+                transition: all 0.2s ease-in-out;
+            }
+            .tag-badge:hover {
+                transform: translateY(-2px);
+            }
+            .btn-hover {
+                transition: all 0.3s ease;
+            }
+            .btn-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+            .tag-dropdown {
+                max-height: 200px;
+                overflow-y: auto;
+            }
+            .notes-list-view {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .note-list-item {
+                display: flex;
+                align-items: center;
+                padding: 1rem;
+                background: white;
+                border-radius: 0.5rem;
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                transition: all 0.2s ease;
+            }
+            .note-list-item:hover {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            .notes-grid-view {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 1.5rem;
+            }
+            .pagination-btn {
+                min-width: 2rem;
+                height: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .pagination-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            .pagination-btn.active {
+                background-color: #4F46E5;
+                color: white;
+                border-color: #4F46E5;
+            }
+            .image-upload-area {
+                border: 2px dashed #cbd5e1;
+                transition: all 0.3s ease;
+            }
+            .image-upload-area:hover {
+                border-color: #4F46E5;
+                background-color: #f8fafc;
+            }
+            .image-upload-area.dragover {
+                border-color: #4F46E5;
+                background-color: #eef2ff;
+            }
+            .image-preview {
+                max-width: 100%;
+                max-height: 200px;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            .image-container {
+                position: relative;
+                display: inline-block;
+            }
+            .image-delete-btn {
+                position: absolute;
+                top: -8px;
+                right: -8px;
+                background: #ef4444;
+                color: white;
+                border-radius: 50%;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                transition: all 0.2s ease;
+            }
+            .image-delete-btn:hover {
+                background: #dc2626;
+                transform: scale(1.1);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-md fixed top-0 left-0 right-0 z-50 transition-all duration-300" id="main-header">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-book text-primary text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-dark">学习笔记</h1>
+            </div>
+            <nav class="hidden md:flex space-x-8">
+                <a href="#dashboard" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium">仪表盘</a>
+                <a href="#notes" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium">笔记</a>
+                <a href="#review" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium">复习</a>
+                <a href="#logs" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium">日志</a>
+            </nav>
+            <div class="flex items-center space-x-4">
+                <button id="backup-btn" class="bg-primary text-white px-4 py-2 rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-200 flex items-center">
+                    <i class="fa fa-download mr-2"></i>备份
+                </button>
+                <button id="debug-btn" class="bg-gray-500 text-white px-3 py-2 rounded-lg shadow-md hover:bg-gray-600 transition-colors duration-200 flex items-center">
+                    <i class="fa fa-bug mr-1"></i>调试
+                </button>
+                <button id="menu-toggle" class="md:hidden text-gray-700 hover:text-primary transition-colors duration-200">
+                    <i class="fa fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-200 py-2 px-4">
+            <a href="#dashboard" class="block py-2 text-gray-700 hover:text-primary transition-colors duration-200">仪表盘</a>
+            <a href="#notes" class="block py-2 text-gray-700 hover:text-primary transition-colors duration-200">笔记</a>
+            <a href="#review" class="block py-2 text-gray-700 hover:text-primary transition-colors duration-200">复习</a>
+            <a href="#logs" class="block py-2 text-gray-700 hover:text-primary transition-colors duration-200">日志</a>
+        </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="container mx-auto px-4 pt-24 pb-16">
+        <!-- 仪表盘 -->
+        <section id="dashboard" class="mb-16">
+            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-6 flex items-center">
+                <i class="fa fa-tachometer text-primary mr-3"></i>学习仪表盘
+            </h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- 左侧：标签选择 -->
+                <div class="lg:col-span-3">
+                    <div class="bg-white rounded-xl shadow-lg p-6 h-full">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                            <i class="fa fa-tags text-primary mr-2"></i>标签筛选
+                        </h3>
+                        <div class="space-y-2 max-h-96 overflow-y-auto">
+                            <label class="flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                                <input type="checkbox" id="dashboard-all-tags" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded dashboard-tag-filter" checked>
+                                <span class="ml-3 text-sm font-medium text-gray-700">全部标签</span>
+                                <span class="ml-auto text-xs text-gray-500" id="all-tags-count">0</span>
+                            </label>
+                            <div id="dashboard-tag-list" class="space-y-1">
+                                <!-- 标签列表将通过JS生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 中间：饼状图 -->
+                <div class="lg:col-span-5">
+                    <div class="bg-white rounded-xl shadow-lg p-6 h-full">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4 text-center">掌握程度分布</h3>
+                        <div class="flex items-center justify-center min-h-[300px]">
+                            <div class="relative">
+                                <canvas id="proficiency-pie-chart" width="280" height="280" class="drop-shadow-lg"></canvas>
+                                <div id="chart-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+                                    <i class="fa fa-pie-chart text-4xl mb-2"></i>
+                                    <span class="text-sm">暂无数据</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 图例 -->
+                        <div class="flex justify-center mt-4 space-x-6">
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
+                                <span class="text-sm text-gray-600">低</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></div>
+                                <span class="text-sm text-gray-600">中</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
+                                <span class="text-sm text-gray-600">高</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：统计数据 -->
+                <div class="lg:col-span-4">
+                    <div class="bg-white rounded-xl shadow-lg p-6 h-full">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center">
+                            <i class="fa fa-bar-chart text-primary mr-2"></i>详细统计
+                        </h3>
+                        <div class="space-y-4">
+                            <!-- 总笔记数 -->
+                            <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-blue-800">总笔记数</p>
+                                        <p class="text-2xl font-bold text-blue-900" id="dashboard-total-notes">0</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
+                                        <i class="fa fa-file-text-o text-blue-600 text-xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 掌握程度低 -->
+                            <div class="bg-gradient-to-r from-red-50 to-red-100 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-red-800">掌握程度低</p>
+                                        <p class="text-2xl font-bold text-red-900" id="dashboard-low-notes">0</p>
+                                        <p class="text-xs text-red-600" id="dashboard-low-percentage">0%</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-red-200 rounded-full flex items-center justify-center">
+                                        <i class="fa fa-exclamation-triangle text-red-600 text-xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 掌握程度中 -->
+                            <div class="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-yellow-800">掌握程度中</p>
+                                        <p class="text-2xl font-bold text-yellow-900" id="dashboard-medium-notes">0</p>
+                                        <p class="text-xs text-yellow-600" id="dashboard-medium-percentage">0%</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-yellow-200 rounded-full flex items-center justify-center">
+                                        <i class="fa fa-clock-o text-yellow-600 text-xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 掌握程度高 -->
+                            <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-green-800">掌握程度高</p>
+                                        <p class="text-2xl font-bold text-green-900" id="dashboard-high-notes">0</p>
+                                        <p class="text-xs text-green-600" id="dashboard-high-percentage">0%</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
+                                        <i class="fa fa-check-circle text-green-600 text-xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 最近复习活动 -->
+                        <div class="mt-6 border-t border-gray-200 pt-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">最近复习活动</h4>
+                            <div id="dashboard-recent-activity" class="space-y-2 max-h-32 overflow-y-auto">
+                                <!-- 最近活动将通过JS生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 笔记管理 -->
+        <section id="notes" class="mb-16">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4 md:mb-0 flex items-center">
+                    <i class="fa fa-sticky-note-o text-primary mr-3"></i>我的笔记
+                </h2>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div class="relative">
+                        <input type="text" id="note-search" placeholder="搜索笔记内容..." class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all duration-200">
+                        <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <button id="advanced-search-btn" class="bg-gray-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center">
+                        <i class="fa fa-filter mr-2"></i>高级筛选
+                    </button>
+                    <button id="add-note-btn" class="bg-primary text-white px-4 py-2 rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-200 flex items-center justify-center btn-hover">
+                        <i class="fa fa-plus mr-2"></i>添加笔记
+                    </button>
+                </div>
+            </div>
+
+            <!-- 高级筛选面板 -->
+            <div id="advanced-search-panel" class="hidden bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- 标签筛选 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">标签</label>
+                        <div class="max-h-32 overflow-y-auto border border-gray-200 rounded-lg p-2">
+                            <div id="advanced-tag-filters">
+                                <!-- 标签选项将通过JS生成 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 掌握程度筛选 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">掌握程度</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="filter-low" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" checked>
+                                <span class="ml-2 text-sm text-gray-700">低</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="filter-medium" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" checked>
+                                <span class="ml-2 text-sm text-gray-700">中</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="filter-high" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" checked>
+                                <span class="ml-2 text-sm text-gray-700">高</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 其他筛选 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">其他筛选</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="filter-with-images" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                                <span class="ml-2 text-sm text-gray-700">包含图片</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" id="filter-recently-reviewed" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                                <span class="ml-2 text-sm text-gray-700">最近复习过</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 排序 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">排序方式</label>
+                        <select id="sort-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                            <option value="createdAt-desc">创建时间（新到旧）</option>
+                            <option value="createdAt-asc">创建时间（旧到新）</option>
+                            <option value="lastReviewed-desc">复习时间（新到旧）</option>
+                            <option value="lastReviewed-asc">复习时间（旧到新）</option>
+                            <option value="proficiency-asc">掌握程度（低到高）</option>
+                            <option value="proficiency-desc">掌握程度（高到低）</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+                    <button id="reset-filters-btn" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                        重置筛选
+                    </button>
+                    <div class="flex space-x-2">
+                        <button id="apply-filters-btn" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors duration-200">
+                            应用筛选
+                        </button>
+                        <button id="close-advanced-search-btn" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors duration-200">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <!-- 左侧：统计信息和视图切换 -->
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-600">
+                        共找到 <span id="notes-count" class="font-semibold text-primary">0</span> 条笔记
+                    </span>
+                    <div class="flex bg-gray-100 rounded-lg p-1">
+                        <button id="card-view-btn" class="px-3 py-1 rounded text-sm font-medium transition-colors duration-200 bg-primary text-white">
+                            <i class="fa fa-th mr-1"></i>卡片
+                        </button>
+                        <button id="list-view-btn" class="px-3 py-1 rounded text-sm font-medium transition-colors duration-200 text-gray-600 hover:text-gray-800">
+                            <i class="fa fa-list mr-1"></i>列表
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 右侧：每页显示数量 -->
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-600">每页显示：</span>
+                    <select id="page-size-select" class="px-3 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none">
+                        <option value="12">12条</option>
+                        <option value="24" selected>24条</option>
+                        <option value="48">48条</option>
+                        <option value="96">96条</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 笔记列表容器 -->
+            <div id="notes-container" class="min-h-[400px]">
+                <!-- 笔记将通过JS生成 -->
+                <div id="notes-empty-state" class="text-center text-gray-500 py-12">
+                    <i class="fa fa-folder-open-o text-5xl mb-4 text-gray-300"></i>
+                    <p class="text-lg">暂无笔记</p>
+                    <p class="text-sm">点击"添加笔记"按钮开始创建你的第一份笔记</p>
+                </div>
+            </div>
+
+            <!-- 分页控件 -->
+            <div id="pagination-container" class="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-200">
+                <div class="text-sm text-gray-600 mb-4 sm:mb-0">
+                    显示第 <span id="page-start">0</span> - <span id="page-end">0</span> 条，共 <span id="total-notes">0</span> 条
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button id="first-page-btn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors duration-200" disabled>
+                        <i class="fa fa-angle-double-left"></i>
+                    </button>
+                    <button id="prev-page-btn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors duration-200" disabled>
+                        <i class="fa fa-angle-left"></i>
+                    </button>
+                    <div id="page-numbers" class="flex space-x-1">
+                        <!-- 页码按钮将通过JS生成 -->
+                    </div>
+                    <button id="next-page-btn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors duration-200">
+                        <i class="fa fa-angle-right"></i>
+                    </button>
+                    <button id="last-page-btn" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors duration-200">
+                        <i class="fa fa-angle-double-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 复习区域 -->
+        <section id="review" class="mb-16">
+            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-6 flex items-center">
+                <i class="fa fa-refresh text-primary mr-3"></i>笔记复习
+            </h2>
+
+            <!-- 复习设置 -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4">复习设置</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择标签</label>
+                        <div id="review-tag-selector" class="flex flex-wrap gap-2 mb-4 max-h-40 overflow-y-auto">
+                            <!-- 标签选择器将通过JS生成 -->
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">掌握程度</label>
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="proficiency-low" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" checked>
+                                <label for="proficiency-low" class="ml-2 block text-sm text-gray-700">
+                                    <span class="inline-block w-3 h-3 bg-red-400 rounded-full mr-1"></span>低
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="proficiency-medium" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" checked>
+                                <label for="proficiency-medium" class="ml-2 block text-sm text-gray-700">
+                                    <span class="inline-block w-3 h-3 bg-yellow-400 rounded-full mr-1"></span>中
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="proficiency-high" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" checked>
+                                <label for="proficiency-high" class="ml-2 block text-sm text-gray-700">
+                                    <span class="inline-block w-3 h-3 bg-green-400 rounded-full mr-1"></span>高
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button id="start-review-btn" class="bg-primary text-white px-6 py-3 rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-200 flex items-center btn-hover">
+                        <i class="fa fa-play mr-2"></i>开始复习
+                    </button>
+                </div>
+            </div>
+
+            <!-- 复习卡片区域 (默认隐藏) -->
+            <div id="review-card-container" class="hidden">
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold text-gray-700">
+                            <span id="review-progress-text">复习进度: 0/0</span>
+                        </h3>
+                        <button id="end-review-btn" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                            <i class="fa fa-times"></i> 结束复习
+                        </button>
+                    </div>
+
+                    <!-- 卡片 -->
+                    <div id="review-card" class="card-flip relative w-full max-w-2xl mx-auto aspect-[3/2] cursor-pointer">
+                        <div class="card-front absolute inset-0 bg-white border-2 border-gray-200 rounded-xl p-8 flex flex-col items-center justify-center text-center overflow-hidden">
+                            <h4 class="text-xl font-bold text-gray-800 mb-4">卡片正面</h4>
+                            <div id="card-front-content" class="text-lg text-gray-700 flex-grow flex flex-col items-center justify-center w-full overflow-auto">
+                                <div id="card-front-text" class="mb-4">点击卡片查看答案</div>
+                                <div id="card-front-image" class="max-w-full"></div>
+                            </div>
+                            <div class="mt-4 flex flex-wrap gap-2 justify-center">
+                                <span id="card-tags" class="text-sm text-gray-500">
+                                    <!-- 标签将通过JS生成 -->
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-back absolute inset-0 bg-white border-2 border-gray-200 rounded-xl p-8 flex flex-col items-center justify-center text-center overflow-hidden">
+                            <h4 class="text-xl font-bold text-gray-800 mb-4">卡片背面</h4>
+                            <div id="card-back-content" class="text-lg text-gray-700 flex-grow flex flex-col items-center justify-center w-full overflow-auto">
+                                <div id="card-back-text" class="mb-4">答案内容将在这里显示</div>
+                                <div id="card-back-image" class="max-w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 掌握程度评分 -->
+                    <div id="proficiency-rating" class="hidden mt-8 flex justify-center space-x-4">
+                        <button data-value="1" class="rating-btn bg-red-100 hover:bg-red-200 text-red-700 px-6 py-3 rounded-lg shadow-md transition-colors duration-200 flex flex-col items-center btn-hover">
+                            <i class="fa fa-times-circle text-2xl mb-1"></i>
+                            <span class="text-sm">完全忘记</span>
+                        </button>
+                        <button data-value="2" class="rating-btn bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-6 py-3 rounded-lg shadow-md transition-colors duration-200 flex flex-col items-center btn-hover">
+                            <i class="fa fa-question-circle text-2xl mb-1"></i>
+                            <span class="text-sm">部分记得</span>
+                        </button>
+                        <button data-value="3" class="rating-btn bg-green-100 hover:bg-green-200 text-green-700 px-6 py-3 rounded-lg shadow-md transition-colors duration-200 flex flex-col items-center btn-hover">
+                            <i class="fa fa-check-circle text-2xl mb-1"></i>
+                            <span class="text-sm">完全掌握</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 日志区域 -->
+        <section id="logs" class="mb-16">
+            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-6 flex items-center">
+                <i class="fa fa-history text-primary mr-3"></i>复习日志
+            </h2>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-semibold text-gray-700">复习记录</h3>
+                    <div class="flex space-x-2">
+                        <button id="filter-date-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200">
+                            <i class="fa fa-calendar mr-1"></i> 日期筛选
+                        </button>
+                        <button id="clear-logs-btn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200">
+                            <i class="fa fa-trash-o mr-1"></i> 清空日志
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标签</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">完全忘记</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部分记得</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">完全掌握</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">平均掌握</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- 日志数据将通过JS生成 -->
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                    <i class="fa fa-history text-4xl mb-3 text-gray-300"></i>
+                                    <p>暂无复习日志</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 添加/编辑笔记模态框 -->
+    <div id="note-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800" id="modal-title">添加笔记</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="note-form">
+                    <input type="hidden" id="note-id">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <!-- 正面内容 -->
+                        <div class="space-y-4">
+                            <div>
+                                <label for="note-front" class="block text-sm font-medium text-gray-700 mb-2">正面内容</label>
+                                <textarea id="note-front" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all duration-200" placeholder="输入问题、关键词或提示..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">正面图片</label>
+                                <div id="front-image-upload" class="image-upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer">
+                                    <div id="front-upload-text">
+                                        <i class="fa fa-image text-3xl text-gray-400 mb-2 block"></i>
+                                        <p class="text-gray-600">点击或拖拽图片到此处上传</p>
+                                        <p class="text-xs text-gray-500 mt-1">支持 JPG、PNG、GIF 格式，最大 5MB</p>
+                                    </div>
+                                    <div id="front-image-preview" class="hidden mt-4">
+                                        <!-- 图片预览将在这里显示 -->
+                                    </div>
+                                </div>
+                                <input type="file" id="front-image-input" accept="image/*" class="hidden">
+                            </div>
+                        </div>
+                        
+                        <!-- 背面内容 -->
+                        <div class="space-y-4">
+                            <div>
+                                <label for="note-back" class="block text-sm font-medium text-gray-700 mb-2">背面内容</label>
+                                <textarea id="note-back" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all duration-200" placeholder="输入答案或详细解释..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">背面图片</label>
+                                <div id="back-image-upload" class="image-upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer">
+                                    <div id="back-upload-text">
+                                        <i class="fa fa-image text-3xl text-gray-400 mb-2 block"></i>
+                                        <p class="text-gray-600">点击或拖拽图片到此处上传</p>
+                                        <p class="text-xs text-gray-500 mt-1">支持 JPG、PNG、GIF 格式，最大 5MB</p>
+                                    </div>
+                                    <div id="back-image-preview" class="hidden mt-4">
+                                        <!-- 图片预览将在这里显示 -->
+                                    </div>
+                                </div>
+                                <input type="file" id="back-image-input" accept="image/*" class="hidden">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="note-tags" class="block text-sm font-medium text-gray-700 mb-2">标签</label>
+                        <div class="flex flex-wrap gap-2 mb-2" id="selected-tags">
+                            <!-- 已选标签将通过JS生成 -->
+                        </div>
+                        <div class="relative">
+                            <div class="flex">
+                                <input type="text" id="new-tag-input" placeholder="添加标签..." class="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all duration-200">
+                                <button type="button" id="add-tag-btn" class="bg-primary text-white px-4 py-2 rounded-r-lg hover:bg-primary/90 transition-colors duration-200">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
+                            <!-- 标签下拉菜单 -->
+                            <div id="tag-dropdown" class="hidden absolute z-10 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 tag-dropdown">
+                                <div class="p-2 text-xs text-gray-500 border-b border-gray-200">已有标签</div>
+                                <div id="existing-tags" class="p-2 flex flex-wrap gap-2">
+                                    <!-- 已有标签将通过JS生成 -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-500">
+                            按Enter键添加多个标签
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">掌握程度</label>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center">
+                                <input type="radio" id="proficiency-level-1" name="proficiency" value="1" class="h-4 w-4 text-red-500 focus:ring-red-500 border-gray-300">
+                                <label for="proficiency-level-1" class="ml-2 block text-sm text-gray-700">
+                                    <span class="inline-block w-3 h-3 bg-red-400 rounded-full mr-1"></span>低
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" id="proficiency-level-2" name="proficiency" value="2" class="h-4 w-4 text-yellow-500 focus:ring-yellow-500 border-gray-300" checked>
+                                <label for="proficiency-level-2" class="ml-2 block text-sm text-gray-700">
+                                    <span class="inline-block w-3 h-3 bg-yellow-400 rounded-full mr-1"></span>中
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" id="proficiency-level-3" name="proficiency" value="3" class="h-4 w-4 text-green-500 focus:ring-green-500 border-gray-300">
+                                <label for="proficiency-level-3" class="ml-2 block text-sm text-gray-700">
+                                    <span class="inline-block w-3 h-3 bg-green-400 rounded-full mr-1"></span>高
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-note-btn" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                            取消
+                        </button>
+                        <button type="submit" class="px-6 py-3 bg-primary text-white rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-200 btn-hover">
+                            保存笔记
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据备份模态框 -->
+    <div id="backup-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">数据备份与恢复</h3>
+                <button id="close-backup-modal-btn" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <h4 class="font-medium text-gray-700 mb-3">备份数据</h4>
+                    <p class="text-sm text-gray-500 mb-4">点击下方按钮下载您的所有笔记和复习记录。</p>
+                    <button id="export-data-btn" class="w-full px-6 py-3 bg-primary text-white rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-200 flex items-center justify-center btn-hover">
+                        <i class="fa fa-download mr-2"></i>导出数据
+                    </button>
+                </div>
+                <div class="border-t border-gray-200 pt-6">
+                    <h4 class="font-medium text-gray-700 mb-3">恢复数据</h4>
+                    <p class="text-sm text-gray-500 mb-4">选择备份文件恢复您的数据。这将覆盖当前所有数据。</p>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择文件</label>
+                        <input type="file" id="import-data-file" accept=".json" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-white hover:file:bg-primary/90">
+                    </div>
+                    <button id="import-data-btn" class="w-full px-6 py-3 bg-gray-700 text-white rounded-lg shadow-md hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center btn-hover">
+                        <i class="fa fa-upload mr-2"></i>导入数据
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 调试信息模态框 -->
+    <div id="debug-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-gray-800">调试信息</h3>
+                <button id="close-debug-modal-btn" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">浏览器信息</h4>
+                        <pre id="browser-info" class="bg-gray-100 p-3 rounded text-sm overflow-x-auto"></pre>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">存储配额</h4>
+                        <pre id="storage-quota" class="bg-gray-100 p-3 rounded text-sm overflow-x-auto"></pre>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">数据库状态</h4>
+                        <pre id="database-status" class="bg-gray-100 p-3 rounded text-sm overflow-x-auto"></pre>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-2">错误日志</h4>
+                        <pre id="error-log" class="bg-gray-100 p-3 rounded text-sm overflow-x-auto max-h-40"></pre>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="clear-db-btn" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                            清空数据库
+                        </button>
+                        <button id="reinit-db-btn" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                            重新初始化
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div id="confirm-dialog" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800" id="confirm-title">确认操作</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-6" id="confirm-message">您确定要执行此操作吗？</p>
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-confirm-btn" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                        取消
+                    </button>
+                    <button id="confirm-btn" class="px-6 py-3 bg-primary text-white rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-200 btn-hover">
+                        确认
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-16 opacity-0 transition-all duration-300 z-50 flex items-center">
+        <i id="toast-icon" class="fa fa-check-circle mr-2"></i>
+        <span id="toast-message">操作成功</span>
+    </div>
+
+    <script>
+        // 全局错误处理和调试
+        const DEBUG_MODE = true;
+        const errorLog = [];
+        
+        function logError(message, error = null) {
+            const logEntry = {
+                timestamp: new Date().toISOString(),
+                message,
+                error: error ? error.toString() : null,
+                stack: error ? error.stack : null
+            };
+            errorLog.push(logEntry);
+            console.error('Error logged:', logEntry);
+            
+            if (DEBUG_MODE) {
+                updateDebugInfo();
+            }
+        }
+        
+        function logDebug(message, data = null) {
+            if (DEBUG_MODE) {
+                console.log(`[DEBUG] ${message}`, data);
+            }
+        }
+
+        // 数据库相关变量
+        let db;
+        const DB_NAME = 'notesDB';
+        const DB_VERSION = 2; // 增加版本号以支持图片字段
+        let currentReviewNotes = [];
+        let currentReviewIndex = 0;
+        let currentNoteId = null;
+        let selectedTags = [];
+        let allTags = new Set();
+        
+        // 图片相关变量
+        let frontImageData = null;
+        let backImageData = null;
+        const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+        
+        // 仪表盘相关变量
+        let dashboardFilteredTags = [];
+        let pieChart = null;
+        
+        // 笔记管理相关变量
+        let currentPage = 1;
+        let pageSize = 24;
+        let viewMode = 'grid'; // 'grid' 或 'list'
+        let filteredNotes = [];
+        let sortBy = 'createdAt-desc';
+        let advancedFilters = {
+            tags: [],
+            proficiency: [1, 2, 3],
+            withImages: false,
+            recentlyReviewed: false
+        };
+
+        // 检查浏览器兼容性
+        function checkBrowserCompatibility() {
+            const checks = {
+                indexedDB: !!window.indexedDB,
+                fileAPI: !!(window.File && window.FileReader && window.FileList && window.Blob),
+                promises: typeof Promise !== 'undefined'
+            };
+            
+            logDebug('Browser compatibility checks', checks);
+            
+            if (!checks.indexedDB) {
+                throw new Error('浏览器不支持 IndexedDB');
+            }
+            
+            if (!checks.fileAPI) {
+                logError('浏览器不支持文件API，导入/导出功能可能受限');
+            }
+            
+            return checks;
+        }
+
+        // 获取存储配额信息
+        async function getStorageQuota() {
+            try {
+                if ('storage' in navigator && 'estimate' in navigator.storage) {
+                    const estimate = await navigator.storage.estimate();
+                    logDebug('Storage quota', estimate);
+                    return estimate;
+                }
+                return null;
+            } catch (error) {
+                logError('Failed to get storage quota', error);
+                return null;
+            }
+        }
+
+        // 初始化数据库（改进版，支持图片）
+        function initDatabase() {
+            return new Promise((resolve, reject) => {
+                logDebug('Initializing database...');
+                
+                // 检查浏览器兼容性
+                try {
+                    checkBrowserCompatibility();
+                } catch (error) {
+                    logError('Browser compatibility check failed', error);
+                    reject(error);
+                    return;
+                }
+
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    logDebug('Database upgrade needed');
+                    db = event.target.result;
+                    
+                    try {
+                        // 删除旧的对象存储（如果存在）并重新创建
+                        if (db.objectStoreNames.contains('notes')) {
+                            db.deleteObjectStore('notes');
+                        }
+                        if (db.objectStoreNames.contains('logs')) {
+                            db.deleteObjectStore('logs');
+                        }
+
+                        // 创建笔记对象存储，添加图片字段支持
+                        const notesStore = db.createObjectStore('notes', { keyPath: 'id', autoIncrement: true });
+                        notesStore.createIndex('tags', 'tags', { multiEntry: true });
+                        notesStore.createIndex('proficiency', 'proficiency');
+                        notesStore.createIndex('lastReviewed', 'lastReviewed');
+                        logDebug('Notes store created with image support');
+                        
+                        // 创建日志对象存储
+                        const logsStore = db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
+                        logsStore.createIndex('date', 'date');
+                        logsStore.createIndex('tags', 'tags', { multiEntry: true });
+                        logDebug('Logs store created');
+                    } catch (error) {
+                        logError('Failed to create object stores', error);
+                        reject(error);
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    logDebug('Database initialized successfully');
+                    
+                    // 添加数据库错误处理
+                    db.onerror = (event) => {
+                        logError('Database error', event.target.error);
+                    };
+                    
+                    db.onversionchange = () => {
+                        logDebug('Database version changed, closing connection');
+                        db.close();
+                    };
+                    
+                    loadNotes(); // 先加载笔记，这会设置 filteredNotes
+                    updateDashboard(); // 然后更新仪表盘
+                    loadTags();
+                    loadLogs();
+                    resolve();
+                };
+
+                request.onerror = (event) => {
+                    const error = event.target.error;
+                    logError('Database initialization failed', error);
+                    reject(error);
+                };
+
+                request.onblocked = (event) => {
+                    logError('Database blocked - another version is open');
+                    showToast('数据库被阻塞，请关闭其他标签页', 'error');
+                };
+            });
+        }
+
+        // 图片处理相关函数
+        function validateImageFile(file) {
+            // 检查文件类型
+            if (!file.type.startsWith('image/')) {
+                throw new Error('请选择图片文件');
+            }
+            
+            // 检查文件大小
+            if (file.size > MAX_IMAGE_SIZE) {
+                throw new Error('图片文件过大，请选择小于5MB的图片');
+            }
+            
+            return true;
+        }
+
+        function readImageAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                try {
+                    validateImageFile(file);
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('读取图片失败'));
+                    reader.readAsDataURL(file);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        function createImagePreview(imageData, container, deleteCallback) {
+            container.innerHTML = '';
+            
+            if (imageData) {
+                const imageContainer = document.createElement('div');
+                imageContainer.className = 'image-container';
+                
+                const img = document.createElement('img');
+                img.src = imageData;
+                img.className = 'image-preview';
+                
+                const deleteBtn = document.createElement('div');
+                deleteBtn.className = 'image-delete-btn';
+                deleteBtn.innerHTML = '<i class="fa fa-times"></i>';
+                deleteBtn.addEventListener('click', deleteCallback);
+                
+                imageContainer.appendChild(img);
+                imageContainer.appendChild(deleteBtn);
+                container.appendChild(imageContainer);
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function setupImageUpload(uploadAreaId, inputId, previewId, imageDataVar) {
+            const uploadArea = document.getElementById(uploadAreaId);
+            const fileInput = document.getElementById(inputId);
+            const previewContainer = document.getElementById(previewId);
+            const uploadText = uploadArea.querySelector('[id$="-upload-text"]');
+
+            // 点击上传区域触发文件选择
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // 文件选择处理
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    try {
+                        const imageData = await readImageAsDataURL(file);
+                        if (uploadAreaId === 'front-image-upload') {
+                            frontImageData = imageData;
+                        } else {
+                            backImageData = imageData;
+                        }
+                        
+                        createImagePreview(imageData, previewContainer, () => {
+                            if (uploadAreaId === 'front-image-upload') {
+                                frontImageData = null;
+                            } else {
+                                backImageData = null;
+                            }
+                            previewContainer.classList.add('hidden');
+                            uploadText.classList.remove('hidden');
+                            fileInput.value = '';
+                        });
+                        
+                        uploadText.classList.add('hidden');
+                        showToast('图片上传成功');
+                    } catch (error) {
+                        logError('Failed to process image', error);
+                        showToast(error.message, 'error');
+                        fileInput.value = '';
+                    }
+                }
+            });
+
+            // 拖拽处理
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    try {
+                        const imageData = await readImageAsDataURL(file);
+                        if (uploadAreaId === 'front-image-upload') {
+                            frontImageData = imageData;
+                        } else {
+                            backImageData = imageData;
+                        }
+                        
+                        createImagePreview(imageData, previewContainer, () => {
+                            if (uploadAreaId === 'front-image-upload') {
+                                frontImageData = null;
+                            } else {
+                                backImageData = null;
+                            }
+                            previewContainer.classList.add('hidden');
+                            uploadText.classList.remove('hidden');
+                            fileInput.value = '';
+                        });
+                        
+                        uploadText.classList.add('hidden');
+                        showToast('图片上传成功');
+                    } catch (error) {
+                        logError('Failed to process dropped image', error);
+                        showToast(error.message, 'error');
+                    }
+                }
+            });
+        }
+
+        // 添加笔记（改进版，支持图片）
+        function addNote(note) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    const error = new Error('Database not initialized');
+                    logError('Cannot add note: database not initialized', error);
+                    reject(error);
+                    return;
+                }
+
+                logDebug('Adding note with images', note);
+                
+                try {
+                    const transaction = db.transaction(['notes'], 'readwrite');
+                    const store = transaction.objectStore('notes');
+                    const request = store.add(note);
+
+                    request.onsuccess = (event) => {
+                        const id = event.target.result;
+                        logDebug('Note added successfully with ID:', id);
+                        updateTagsFromNote(note);
+                        resolve(id);
+                    };
+
+                    request.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Failed to add note', error);
+                        reject(error);
+                    };
+
+                    transaction.oncomplete = () => {
+                        loadNotes(); // 使用新的加载系统
+                        updateDashboard();
+                        showToast('笔记添加成功');
+                    };
+
+                    transaction.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Add note transaction failed', error);
+                        reject(error);
+                    };
+                } catch (error) {
+                    logError('Exception in addNote', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 更新笔记（改进版，支持图片）
+        function updateNote(note) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    const error = new Error('Database not initialized');
+                    logError('Cannot update note: database not initialized', error);
+                    reject(error);
+                    return;
+                }
+
+                logDebug('Updating note with images', note);
+                
+                try {
+                    const transaction = db.transaction(['notes'], 'readwrite');
+                    const store = transaction.objectStore('notes');
+                    const request = store.put(note);
+
+                    request.onsuccess = (event) => {
+                        logDebug('Note updated successfully:', event.target.result);
+                        updateTagsFromNote(note);
+                        resolve(event.target.result);
+                    };
+
+                    request.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Failed to update note', error);
+                        reject(error);
+                    };
+
+                    transaction.oncomplete = () => {
+                        loadNotes(); // 使用新的加载系统
+                        updateDashboard();
+                        showToast('笔记更新成功');
+                    };
+
+                    transaction.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Update note transaction failed', error);
+                        reject(error);
+                    };
+                } catch (error) {
+                    logError('Exception in updateNote', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 删除笔记（改进版）
+        function deleteNote(id) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    const error = new Error('Database not initialized');
+                    logError('Cannot delete note: database not initialized', error);
+                    reject(error);
+                    return;
+                }
+
+                logDebug('Deleting note with ID:', id);
+                
+                try {
+                    const transaction = db.transaction(['notes'], 'readwrite');
+                    const store = transaction.objectStore('notes');
+                    const request = store.delete(id);
+
+                    request.onsuccess = (event) => {
+                        logDebug('Note deleted successfully:', id);
+                        resolve(id);
+                    };
+
+                    request.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Failed to delete note', error);
+                        reject(error);
+                    };
+
+                    transaction.oncomplete = () => {
+                        loadNotes(); // 使用新的加载系统
+                        loadTags();
+                        updateDashboard();
+                        showToast('笔记删除成功');
+                    };
+
+                    transaction.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Delete note transaction failed', error);
+                        reject(error);
+                    };
+                } catch (error) {
+                    logError('Exception in deleteNote', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 获取所有笔记（改进版）
+        function getAllNotes() {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    const error = new Error('Database not initialized');
+                    logError('Cannot get notes: database not initialized', error);
+                    reject(error);
+                    return;
+                }
+
+                try {
+                    const transaction = db.transaction(['notes'], 'readonly');
+                    const store = transaction.objectStore('notes');
+                    const request = store.getAll();
+
+                    request.onsuccess = (event) => {
+                        const notes = event.target.result || [];
+                        logDebug(`Retrieved ${notes.length} notes`);
+                        resolve(notes);
+                    };
+
+                    request.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Failed to get all notes', error);
+                        reject(error);
+                    };
+
+                    transaction.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Get all notes transaction failed', error);
+                        reject(error);
+                    };
+                } catch (error) {
+                    logError('Exception in getAllNotes', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 根据标签获取笔记（改进版）
+        function getNotesByTags(tags) {
+            return new Promise((resolve, reject) => {
+                if (!tags || tags.length === 0) {
+                    getAllNotes().then(resolve).catch(reject);
+                    return;
+                }
+
+                if (!db) {
+                    const error = new Error('Database not initialized');
+                    logError('Cannot get notes by tags: database not initialized', error);
+                    reject(error);
+                    return;
+                }
+
+                logDebug('Getting notes by tags:', tags);
+
+                try {
+                    const transaction = db.transaction(['notes'], 'readonly');
+                    const store = transaction.objectStore('notes');
+                    const index = store.index('tags');
+                    const notes = new Set();
+                    let completed = 0;
+
+                    tags.forEach(tag => {
+                        const request = index.getAll(tag);
+                        request.onsuccess = (event) => {
+                            event.target.result.forEach(note => notes.add(note));
+                            completed++;
+                            if (completed === tags.length) {
+                                const result = Array.from(notes);
+                                logDebug(`Found ${result.length} notes for tags:`, tags);
+                                resolve(result);
+                            }
+                        };
+                        request.onerror = (event) => {
+                            const error = event.target.error;
+                            logError('Failed to get notes by tag: ' + tag, error);
+                            reject(error);
+                        };
+                    });
+
+                    transaction.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Get notes by tags transaction failed', error);
+                        reject(error);
+                    };
+                } catch (error) {
+                    logError('Exception in getNotesByTags', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 添加日志（改进版）
+        function addLog(log) {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    const error = new Error('Database not initialized');
+                    logError('Cannot add log: database not initialized', error);
+                    reject(error);
+                    return;
+                }
+
+                logDebug('Adding log', log);
+                
+                try {
+                    const transaction = db.transaction(['logs'], 'readwrite');
+                    const store = transaction.objectStore('logs');
+                    const request = store.add(log);
+
+                    request.onsuccess = (event) => {
+                        logDebug('Log added successfully:', event.target.result);
+                        resolve(event.target.result);
+                    };
+
+                    request.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Failed to add log', error);
+                        reject(error);
+                    };
+
+                    transaction.oncomplete = () => {
+                        loadLogs();
+                    };
+
+                    transaction.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Add log transaction failed', error);
+                        reject(error);
+                    };
+                } catch (error) {
+                    logError('Exception in addLog', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 获取所有日志（改进版）
+        function getAllLogs() {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    const error = new Error('Database not initialized');
+                    logError('Cannot get logs: database not initialized', error);
+                    reject(error);
+                    return;
+                }
+
+                try {
+                    const transaction = db.transaction(['logs'], 'readonly');
+                    const store = transaction.objectStore('logs');
+                    const request = store.getAll();
+
+                    request.onsuccess = (event) => {
+                        const logs = event.target.result || [];
+                        logDebug(`Retrieved ${logs.length} logs`);
+                        resolve(logs);
+                    };
+
+                    request.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Failed to get all logs', error);
+                        reject(error);
+                    };
+
+                    transaction.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Get all logs transaction failed', error);
+                        reject(error);
+                    };
+                } catch (error) {
+                    logError('Exception in getAllLogs', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 更新调试信息
+        async function updateDebugInfo() {
+            try {
+                // 浏览器信息
+                const browserInfo = {
+                    userAgent: navigator.userAgent,
+                    language: navigator.language,
+                    cookieEnabled: navigator.cookieEnabled,
+                    onLine: navigator.onLine,
+                    platform: navigator.platform
+                };
+                document.getElementById('browser-info').textContent = JSON.stringify(browserInfo, null, 2);
+
+                // 存储配额
+                const quota = await getStorageQuota();
+                document.getElementById('storage-quota').textContent = quota ? 
+                    JSON.stringify(quota, null, 2) : '无法获取存储配额信息';
+
+                // 数据库状态
+                const dbStatus = {
+                    name: db ? db.name : 'Not initialized',
+                    version: db ? db.version : 'N/A',
+                    objectStoreNames: db ? Array.from(db.objectStoreNames) : [],
+                    connected: !!db
+                };
+                document.getElementById('database-status').textContent = JSON.stringify(dbStatus, null, 2);
+
+                // 错误日志
+                document.getElementById('error-log').textContent = errorLog.length > 0 ? 
+                    errorLog.slice(-10).map(log => `[${log.timestamp}] ${log.message}${log.error ? ': ' + log.error : ''}`).join('\n') :
+                    '暂无错误';
+            } catch (error) {
+                logError('Failed to update debug info', error);
+            }
+        }
+
+        // 清空数据库
+        function clearDatabase() {
+            return new Promise((resolve, reject) => {
+                if (!db) {
+                    reject(new Error('Database not initialized'));
+                    return;
+                }
+
+                try {
+                    const transaction = db.transaction(['notes', 'logs'], 'readwrite');
+                    
+                    transaction.objectStore('notes').clear();
+                    transaction.objectStore('logs').clear();
+                    
+                    transaction.oncomplete = () => {
+                        logDebug('Database cleared successfully');
+                        allTags.clear();
+                        loadNotes(); // 使用新的加载系统
+                        loadTags();
+                        loadLogs();
+                        updateDashboard();
+                        resolve();
+                    };
+                    
+                    transaction.onerror = (event) => {
+                        const error = event.target.error;
+                        logError('Failed to clear database', error);
+                        reject(error);
+                    };
+                } catch (error) {
+                    logError('Exception in clearDatabase', error);
+                    reject(error);
+                }
+            });
+        }
+
+        // 重新初始化数据库
+        function reinitializeDatabase() {
+            return new Promise((resolve, reject) => {
+                if (db) {
+                    db.close();
+                    db = null;
+                }
+
+                // 删除现有数据库
+                const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+                
+                deleteRequest.onsuccess = () => {
+                    logDebug('Database deleted successfully');
+                    initDatabase().then(resolve).catch(reject);
+                };
+                
+                deleteRequest.onerror = (event) => {
+                    const error = event.target.error;
+                    logError('Failed to delete database', error);
+                    reject(error);
+                };
+                
+                deleteRequest.onblocked = () => {
+                    logError('Database deletion blocked');
+                    reject(new Error('Database deletion blocked'));
+                };
+            });
+        }
+
+        // 从笔记中更新标签集合
+        function updateTagsFromNote(note) {
+            if (note.tags && Array.isArray(note.tags)) {
+                note.tags.forEach(tag => allTags.add(tag));
+                loadTags();
+            }
+        }
+
+        // 加载所有标签
+        function loadTags() {
+            getAllNotes().then(notes => {
+                allTags.clear();
+                notes.forEach(note => {
+                    if (note.tags && Array.isArray(note.tags)) {
+                        note.tags.forEach(tag => allTags.add(tag));
+                    }
+                });
+                
+                // 更新复习标签选择器
+                const reviewTagSelectorEl = document.getElementById('review-tag-selector');
+                reviewTagSelectorEl.innerHTML = '';
+                
+                // 添加"全部"选项
+                const allOption = document.createElement('label');
+                allOption.className = 'inline-flex items-center';
+                allOption.innerHTML = `
+                    <input type="checkbox" id="review-all-tags" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" checked>
+                    <span class="ml-2 text-sm text-gray-700">全部</span>
+                `;
+                reviewTagSelectorEl.appendChild(allOption);
+                
+                // 添加所有标签选项
+                Array.from(allTags).forEach(tag => {
+                    const tagOption = document.createElement('label');
+                    tagOption.className = 'inline-flex items-center';
+                    tagOption.innerHTML = `
+                        <input type="checkbox" class="review-tag-checkbox h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded" value="${tag}" checked>
+                        <span class="ml-2 text-sm text-gray-700">${tag}</span>
+                    `;
+                    reviewTagSelectorEl.appendChild(tagOption);
+                });
+                
+                // 添加事件监听
+                const reviewAllTags = document.getElementById('review-all-tags');
+                if (reviewAllTags) {
+                    reviewAllTags.addEventListener('change', (e) => {
+                        const checkboxes = document.querySelectorAll('.review-tag-checkbox');
+                        checkboxes.forEach(checkbox => {
+                            checkbox.checked = e.target.checked;
+                        });
+                    });
+                }
+                
+                document.querySelectorAll('.review-tag-checkbox').forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        const allChecked = document.querySelectorAll('.review-tag-checkbox:checked').length === document.querySelectorAll('.review-tag-checkbox').length;
+                        const reviewAllTagsEl = document.getElementById('review-all-tags');
+                        if (reviewAllTagsEl) {
+                            reviewAllTagsEl.checked = allChecked;
+                        }
+                    });
+                });
+                
+                // 更新模态框中的已有标签
+                updateExistingTags();
+                
+                // 更新高级筛选中的标签选项
+                updateAdvancedTagFilters();
+            }).catch(error => {
+                logError('Failed to load tags', error);
+            });
+        }
+
+        // 更新模态框中的已有标签
+        function updateExistingTags() {
+            const existingTagsEl = document.getElementById('existing-tags');
+            existingTagsEl.innerHTML = '';
+            
+            Array.from(allTags).forEach(tag => {
+                const tagEl = document.createElement('button');
+                tagEl.type = 'button';
+                tagEl.className = 'bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-xs transition-colors duration-200';
+                tagEl.textContent = tag;
+                tagEl.addEventListener('click', () => {
+                    if (!selectedTags.includes(tag)) {
+                        selectedTags.push(tag);
+                        renderSelectedTags();
+                    }
+                    document.getElementById('tag-dropdown').classList.add('hidden');
+                });
+                existingTagsEl.appendChild(tagEl);
+            });
+        }
+
+        // 根据标签筛选笔记（已移除，使用新的筛选系统）
+        function filterNotesByTags() {
+            // 这个函数已被新的筛选系统替代
+            loadNotes();
+        }
+
+        // 加载笔记（重写以支持筛选、排序和分页）
+        function loadNotes() {
+            getAllNotes().then(notes => {
+                // 应用筛选
+                filteredNotes = applyFilters(notes);
+                
+                // 应用排序
+                filteredNotes = applySorting(filteredNotes);
+                
+                // 更新UI
+                updateNotesDisplay();
+                updatePagination();
+            }).catch(error => {
+                logError('Failed to load notes', error);
+                showToast('加载笔记失败', 'error');
+            });
+        }
+
+        // 应用筛选条件
+        function applyFilters(notes) {
+            return notes.filter(note => {
+                // 文本搜索
+                const searchTerm = document.getElementById('note-search').value.toLowerCase();
+                if (searchTerm) {
+                    const matchesSearch = 
+                        note.front.toLowerCase().includes(searchTerm) ||
+                        note.back.toLowerCase().includes(searchTerm) ||
+                        (note.tags && note.tags.some(tag => tag.toLowerCase().includes(searchTerm)));
+                    if (!matchesSearch) return false;
+                }
+                
+                // 标签筛选
+                if (advancedFilters.tags.length > 0) {
+                    const hasTags = note.tags && note.tags.some(tag => advancedFilters.tags.includes(tag));
+                    if (!hasTags) return false;
+                }
+                
+                // 掌握程度筛选
+                if (!advancedFilters.proficiency.includes(note.proficiency)) {
+                    return false;
+                }
+                
+                // 图片筛选
+                if (advancedFilters.withImages) {
+                    if (!note.frontImage && !note.backImage) return false;
+                }
+                
+                // 最近复习筛选
+                if (advancedFilters.recentlyReviewed) {
+                    if (!note.lastReviewed) return false;
+                    const reviewDate = new Date(note.lastReviewed);
+                    const now = new Date();
+                    const daysDiff = (now - reviewDate) / (1000 * 60 * 60 * 24);
+                    if (daysDiff > 7) return false; // 7天内复习过
+                }
+                
+                return true;
+            });
+        }
+
+        // 应用排序
+        function applySorting(notes) {
+            const [field, direction] = sortBy.split('-');
+            
+            return notes.sort((a, b) => {
+                let aValue, bValue;
+                
+                switch (field) {
+                    case 'createdAt':
+                        aValue = new Date(a.createdAt || 0);
+                        bValue = new Date(b.createdAt || 0);
+                        break;
+                    case 'lastReviewed':
+                        aValue = new Date(a.lastReviewed || 0);
+                        bValue = new Date(b.lastReviewed || 0);
+                        break;
+                    case 'proficiency':
+                        aValue = a.proficiency || 0;
+                        bValue = b.proficiency || 0;
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (direction === 'asc') {
+                    return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+                } else {
+                    return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+                }
+            });
+        }
+
+        // 更新笔记显示
+        function updateNotesDisplay() {
+            const container = document.getElementById('notes-container');
+            const emptyState = document.getElementById('notes-empty-state');
+            
+            // 更新统计信息
+            document.getElementById('notes-count').textContent = filteredNotes.length;
+            
+            if (filteredNotes.length === 0) {
+                container.innerHTML = '';
+                container.appendChild(emptyState);
+                return;
+            }
+            
+            // 计算当前页数据
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, filteredNotes.length);
+            const pageNotes = filteredNotes.slice(startIndex, endIndex);
+            
+            // 渲染笔记
+            renderNotes(pageNotes, container);
+        }
+
+        // 渲染笔记（支持不同视图模式）
+        function renderNotes(notes, container) {
+            container.innerHTML = '';
+            
+            if (viewMode === 'grid') {
+                container.className = 'notes-grid-view';
+                notes.forEach(note => {
+                    const card = createNoteCard(note);
+                    container.appendChild(card);
+                });
+            } else {
+                container.className = 'notes-list-view';
+                notes.forEach(note => {
+                    const listItem = createNoteListItem(note);
+                    container.appendChild(listItem);
+                });
+            }
+        }
+
+        // 创建笔记卡片（网格视图）
+        function createNoteCard(note) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1';
+            
+            // 掌握程度颜色
+            let proficiencyColor;
+            switch(note.proficiency) {
+                case 1: proficiencyColor = 'bg-red-100 text-red-800'; break;
+                case 2: proficiencyColor = 'bg-yellow-100 text-yellow-800'; break;
+                case 3: proficiencyColor = 'bg-green-100 text-green-800'; break;
+                default: proficiencyColor = 'bg-gray-100 text-gray-800';
+            }
+            
+            // 生成图片预览（如果存在）
+            const frontImageHtml = note.frontImage ? 
+                `<div class="mb-2"><img src="${note.frontImage}" class="w-full h-32 object-cover rounded"></div>` : '';
+            const backImageHtml = note.backImage ? 
+                `<div class="mb-2"><img src="${note.backImage}" class="w-full h-20 object-cover rounded opacity-50"></div>` : '';
+            
+            card.innerHTML = `
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-semibold text-gray-800 line-clamp-1 flex-1 mr-2">${note.front}</h3>
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${proficiencyColor} flex-shrink-0">
+                            ${['低', '中', '高'][note.proficiency - 1]}
+                        </span>
+                    </div>
+                    ${frontImageHtml}
+                    <p class="text-gray-600 mb-4 line-clamp-2">${note.back}</p>
+                    ${backImageHtml}
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        ${(note.tags || []).map(tag => `
+                            <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${tag}</span>
+                        `).join('')}
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-500">
+                            ${new Date(note.lastReviewed || note.createdAt).toLocaleDateString()}
+                        </span>
+                        <div class="flex space-x-2">
+                            <button class="edit-note-btn text-primary hover:text-primary/80 transition-colors duration-200" data-id="${note.id}">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <button class="delete-note-btn text-red-500 hover:text-red-700 transition-colors duration-200" data-id="${note.id}">
+                                <i class="fa fa-trash-o"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 添加事件监听
+            card.querySelector('.edit-note-btn').addEventListener('click', () => openEditNoteModal(note.id));
+            card.querySelector('.delete-note-btn').addEventListener('click', () => {
+                currentNoteId = note.id;
+                showConfirmDialog('确认删除', '你确定要删除这条笔记吗？此操作不可撤销。', deleteCurrentNote);
+            });
+            
+            return card;
+        }
+
+        // 创建笔记列表项（列表视图）
+        function createNoteListItem(note) {
+            const listItem = document.createElement('div');
+            listItem.className = 'note-list-item';
+            
+            // 掌握程度颜色
+            let proficiencyBadge;
+            switch(note.proficiency) {
+                case 1: proficiencyBadge = '<span class="w-3 h-3 bg-red-400 rounded-full"></span>'; break;
+                case 2: proficiencyBadge = '<span class="w-3 h-3 bg-yellow-400 rounded-full"></span>'; break;
+                case 3: proficiencyBadge = '<span class="w-3 h-3 bg-green-400 rounded-full"></span>'; break;
+                default: proficiencyBadge = '<span class="w-3 h-3 bg-gray-400 rounded-full"></span>';
+            }
+            
+            const hasImages = note.frontImage || note.backImage;
+            const imageIcon = hasImages ? '<i class="fa fa-image text-blue-500 ml-2"></i>' : '';
+            
+            listItem.innerHTML = `
+                <div class="flex items-center mr-4">
+                    ${proficiencyBadge}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center">
+                        <h3 class="font-semibold text-gray-800 truncate mr-2">${note.front}</h3>
+                        ${imageIcon}
+                    </div>
+                    <p class="text-gray-600 text-sm truncate mt-1">${note.back}</p>
+                    <div class="flex items-center mt-2">
+                        <div class="flex flex-wrap gap-1 mr-4">
+                            ${(note.tags || []).slice(0, 3).map(tag => `
+                                <span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs">${tag}</span>
+                            `).join('')}
+                            ${(note.tags || []).length > 3 ? `<span class="text-xs text-gray-500">+${(note.tags || []).length - 3}</span>` : ''}
+                        </div>
+                        <span class="text-xs text-gray-500 ml-auto mr-4">
+                            ${new Date(note.lastReviewed || note.createdAt).toLocaleDateString()}
+                        </span>
+                    </div>
+                </div>
+                <div class="flex space-x-2 ml-4">
+                    <button class="edit-note-btn text-primary hover:text-primary/80 transition-colors duration-200 p-2" data-id="${note.id}">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                    <button class="delete-note-btn text-red-500 hover:text-red-700 transition-colors duration-200 p-2" data-id="${note.id}">
+                        <i class="fa fa-trash-o"></i>
+                    </button>
+                </div>
+            `;
+            
+            // 添加事件监听
+            listItem.querySelector('.edit-note-btn').addEventListener('click', () => openEditNoteModal(note.id));
+            listItem.querySelector('.delete-note-btn').addEventListener('click', () => {
+                currentNoteId = note.id;
+                showConfirmDialog('确认删除', '你确定要删除这条笔记吗？此操作不可撤销。', deleteCurrentNote);
+            });
+            
+            return listItem;
+        }
+
+        // 更新分页控件
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredNotes.length / pageSize);
+            const startIndex = (currentPage - 1) * pageSize + 1;
+            const endIndex = Math.min(currentPage * pageSize, filteredNotes.length);
+            
+            // 更新分页信息
+            document.getElementById('page-start').textContent = filteredNotes.length > 0 ? startIndex : 0;
+            document.getElementById('page-end').textContent = endIndex;
+            document.getElementById('total-notes').textContent = filteredNotes.length;
+            
+            // 更新分页按钮状态
+            const firstBtn = document.getElementById('first-page-btn');
+            const prevBtn = document.getElementById('prev-page-btn');
+            const nextBtn = document.getElementById('next-page-btn');
+            const lastBtn = document.getElementById('last-page-btn');
+            
+            firstBtn.disabled = currentPage === 1;
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+            lastBtn.disabled = currentPage === totalPages || totalPages === 0;
+            
+            // 生成页码按钮
+            generatePageNumbers(totalPages);
+            
+            // 显示或隐藏分页控件
+            const paginationContainer = document.getElementById('pagination-container');
+            paginationContainer.style.display = totalPages <= 1 ? 'none' : 'flex';
+        }
+
+        // 生成页码按钮
+        function generatePageNumbers(totalPages) {
+            const pageNumbers = document.getElementById('page-numbers');
+            pageNumbers.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `pagination-btn px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors duration-200 ${i === currentPage ? 'active' : ''}`;
+                pageBtn.textContent = i;
+                pageBtn.addEventListener('click', () => goToPage(i));
+                pageNumbers.appendChild(pageBtn);
+            }
+        }
+
+        // 跳转到指定页
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredNotes.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            updateNotesDisplay();
+            updatePagination();
+            
+            // 滚动到顶部
+            document.getElementById('notes').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 视图切换
+        function switchView(mode) {
+            viewMode = mode;
+            
+            // 更新按钮状态
+            const cardBtn = document.getElementById('card-view-btn');
+            const listBtn = document.getElementById('list-view-btn');
+            
+            if (mode === 'grid') {
+                cardBtn.className = 'px-3 py-1 rounded text-sm font-medium transition-colors duration-200 bg-primary text-white';
+                listBtn.className = 'px-3 py-1 rounded text-sm font-medium transition-colors duration-200 text-gray-600 hover:text-gray-800';
+            } else {
+                cardBtn.className = 'px-3 py-1 rounded text-sm font-medium transition-colors duration-200 text-gray-600 hover:text-gray-800';
+                listBtn.className = 'px-3 py-1 rounded text-sm font-medium transition-colors duration-200 bg-primary text-white';
+            }
+            
+            // 重新渲染笔记
+            updateNotesDisplay();
+        }
+
+        // 更新高级筛选标签选项
+        function updateAdvancedTagFilters() {
+            const container = document.getElementById('advanced-tag-filters');
+            container.innerHTML = '';
+            
+            Array.from(allTags).forEach(tag => {
+                const label = document.createElement('label');
+                label.className = 'flex items-center mb-1';
+                label.innerHTML = `
+                    <input type="checkbox" class="advanced-tag-checkbox h-3 w-3 text-primary focus:ring-primary border-gray-300 rounded" value="${tag}" ${advancedFilters.tags.includes(tag) ? 'checked' : ''}>
+                    <span class="ml-2 text-sm text-gray-700">${tag}</span>
+                `;
+                container.appendChild(label);
+            });
+        }
+
+        // 应用高级筛选
+        function applyAdvancedFilters() {
+            // 获取选中的标签
+            const selectedTags = Array.from(document.querySelectorAll('.advanced-tag-checkbox:checked')).map(cb => cb.value);
+            advancedFilters.tags = selectedTags;
+            
+            // 获取选中的掌握程度
+            const proficiencyLevels = [];
+            if (document.getElementById('filter-low').checked) proficiencyLevels.push(1);
+            if (document.getElementById('filter-medium').checked) proficiencyLevels.push(2);
+            if (document.getElementById('filter-high').checked) proficiencyLevels.push(3);
+            advancedFilters.proficiency = proficiencyLevels;
+            
+            // 获取其他筛选条件
+            advancedFilters.withImages = document.getElementById('filter-with-images').checked;
+            advancedFilters.recentlyReviewed = document.getElementById('filter-recently-reviewed').checked;
+            
+            // 获取排序方式
+            sortBy = document.getElementById('sort-select').value;
+            
+            // 重置到第一页
+            currentPage = 1;
+            
+            // 重新加载笔记
+            loadNotes();
+            
+            // 关闭高级筛选面板
+            document.getElementById('advanced-search-panel').classList.add('hidden');
+        }
+
+        // 重置筛选条件
+        function resetFilters() {
+            // 重置文本搜索
+            document.getElementById('note-search').value = '';
+            
+            // 重置高级筛选
+            advancedFilters = {
+                tags: [],
+                proficiency: [1, 2, 3],
+                withImages: false,
+                recentlyReviewed: false
+            };
+            
+            // 重置排序
+            sortBy = 'createdAt-desc';
+            document.getElementById('sort-select').value = sortBy;
+            
+            // 重置UI
+            document.querySelectorAll('.advanced-tag-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('filter-low').checked = true;
+            document.getElementById('filter-medium').checked = true;
+            document.getElementById('filter-high').checked = true;
+            document.getElementById('filter-with-images').checked = false;
+            document.getElementById('filter-recently-reviewed').checked = false;
+            
+            // 重置页码
+            currentPage = 1;
+            
+            // 重新加载笔记
+            loadNotes();
+        }
+
+        // 打开编辑笔记模态框（改进版，支持图片）
+        function openEditNoteModal(id) {
+            if (!db) {
+                showToast('数据库未初始化', 'error');
+                return;
+            }
+
+            try {
+                const transaction = db.transaction(['notes'], 'readonly');
+                const store = transaction.objectStore('notes');
+                const request = store.get(id);
+                
+                request.onsuccess = (event) => {
+                    const note = event.target.result;
+                    if (note) {
+                        document.getElementById('note-id').value = note.id;
+                        document.getElementById('note-front').value = note.front;
+                        document.getElementById('note-back').value = note.back;
+                        
+                        // 设置标签
+                        selectedTags = [...(note.tags || [])];
+                        renderSelectedTags();
+                        
+                        // 设置掌握程度
+                        document.getElementById(`proficiency-level-${note.proficiency}`).checked = true;
+                        
+                        // 设置图片
+                        frontImageData = note.frontImage || null;
+                        backImageData = note.backImage || null;
+                        
+                        // 显示图片预览
+                        const frontPreview = document.getElementById('front-image-preview');
+                        const backPreview = document.getElementById('back-image-preview');
+                        const frontUploadText = document.getElementById('front-upload-text');
+                        const backUploadText = document.getElementById('back-upload-text');
+                        
+                        if (frontImageData) {
+                            createImagePreview(frontImageData, frontPreview, () => {
+                                frontImageData = null;
+                                frontPreview.classList.add('hidden');
+                                frontUploadText.classList.remove('hidden');
+                                document.getElementById('front-image-input').value = '';
+                            });
+                            frontUploadText.classList.add('hidden');
+                        } else {
+                            frontPreview.classList.add('hidden');
+                            frontUploadText.classList.remove('hidden');
+                        }
+                        
+                        if (backImageData) {
+                            createImagePreview(backImageData, backPreview, () => {
+                                backImageData = null;
+                                backPreview.classList.add('hidden');
+                                backUploadText.classList.remove('hidden');
+                                document.getElementById('back-image-input').value = '';
+                            });
+                            backUploadText.classList.add('hidden');
+                        } else {
+                            backPreview.classList.add('hidden');
+                            backUploadText.classList.remove('hidden');
+                        }
+                        
+                        // 更新模态框标题
+                        document.getElementById('modal-title').textContent = '编辑笔记';
+                        
+                        // 显示模态框
+                        document.getElementById('note-modal').style.display = 'flex';
+                    }
+                };
+                
+                request.onerror = (event) => {
+                    const error = event.target.error;
+                    logError('Failed to get note for editing', error);
+                    showToast('获取笔记失败', 'error');
+                };
+            } catch (error) {
+                logError('Exception in openEditNoteModal', error);
+                showToast('打开编辑模态框失败', 'error');
+            }
+        }
+
+        // 渲染已选标签
+        function renderSelectedTags() {
+            const container = document.getElementById('selected-tags');
+            container.innerHTML = '';
+            
+            selectedTags.forEach(tag => {
+                const tagEl = document.createElement('div');
+                tagEl.className = 'flex items-center bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm';
+                tagEl.innerHTML = `
+                    <span>${tag}</span>
+                    <button type="button" class="ml-1 text-gray-500 hover:text-gray-700" data-tag="${tag}">
+                        <i class="fa fa-times-circle"></i>
+                    </button>
+                `;
+                
+                // 添加删除标签事件
+                tagEl.querySelector('button').addEventListener('click', (e) => {
+                    const tagToRemove = e.target.closest('button').dataset.tag;
+                    selectedTags = selectedTags.filter(t => t !== tagToRemove);
+                    renderSelectedTags();
+                });
+                
+                container.appendChild(tagEl);
+            });
+        }
+
+        // 删除当前选中的笔记
+        function deleteCurrentNote() {
+            if (currentNoteId !== null) {
+                deleteNote(currentNoteId).then(() => {
+                    currentNoteId = null;
+                }).catch(error => {
+                    logError('Failed to delete current note', error);
+                    showToast('删除笔记失败', 'error');
+                });
+            }
+        }
+
+        // 加载日志
+        function loadLogs() {
+            getAllLogs().then(logs => {
+                renderLogs(logs);
+            }).catch(error => {
+                logError('Failed to load logs', error);
+                showToast('加载日志失败', 'error');
+            });
+        }
+
+        // 渲染日志
+        function renderLogs(logs) {
+            const tableBody = document.getElementById('logs-table-body');
+            tableBody.innerHTML = '';
+            
+            if (logs.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                            <i class="fa fa-history text-4xl mb-3 text-gray-300"></i>
+                            <p>暂无复习日志</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // 按日期排序（最新的在前）
+            logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors duration-200';
+                
+                // 计算平均掌握程度
+                const totalReviews = log.count1 + log.count2 + log.count3;
+                const avgProficiency = totalReviews > 0 ? 
+                    ((log.count1 * 1 + log.count2 * 2 + log.count3 * 3) / totalReviews).toFixed(2) : 0;
+                
+                // 格式化日期
+                const date = new Date(log.date);
+                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formattedDate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex flex-wrap gap-1">
+                            ${(log.tags || []).map(tag => `<span class="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs">${tag}</span>`).join('')}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${totalReviews}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">${log.count1}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-yellow-600">${log.count2}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">${log.count3}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${avgProficiency}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 更新仪表盘
+        function updateDashboard() {
+            getAllNotes().then(notes => {
+                updateDashboardTags(notes);
+                updateDashboardData(notes);
+            }).catch(error => {
+                logError('Failed to update dashboard', error);
+            });
+        }
+
+        // 更新仪表盘标签列表
+        function updateDashboardTags(notes) {
+            const tagCounts = new Map();
+            const totalNotes = notes.length;
+            
+            // 统计每个标签的笔记数量
+            notes.forEach(note => {
+                if (note.tags && Array.isArray(note.tags)) {
+                    note.tags.forEach(tag => {
+                        tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+                    });
+                }
+            });
+            
+            // 更新总数
+            document.getElementById('all-tags-count').textContent = totalNotes;
+            
+            // 更新标签列表
+            const tagListEl = document.getElementById('dashboard-tag-list');
+            tagListEl.innerHTML = '';
+            
+            Array.from(tagCounts.entries())
+                .sort((a, b) => b[1] - a[1]) // 按笔记数量排序
+                .forEach(([tag, count]) => {
+                    const tagItem = document.createElement('label');
+                    tagItem.className = 'flex items-center cursor-pointer p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200';
+                    tagItem.innerHTML = `
+                        <input type="checkbox" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded dashboard-tag-filter" 
+                               value="${tag}" ${dashboardFilteredTags.includes(tag) || dashboardFilteredTags.length === 0 ? 'checked' : ''}>
+                        <span class="ml-3 text-sm text-gray-700">${tag}</span>
+                        <span class="ml-auto text-xs text-gray-500">${count}</span>
+                    `;
+                    
+                    const checkbox = tagItem.querySelector('input');
+                    checkbox.addEventListener('change', onDashboardTagFilterChange);
+                    
+                    tagListEl.appendChild(tagItem);
+                });
+        }
+
+        // 处理仪表盘标签筛选变化
+        function onDashboardTagFilterChange() {
+            const allTagsCheckbox = document.getElementById('dashboard-all-tags');
+            const individualCheckboxes = document.querySelectorAll('.dashboard-tag-filter:not(#dashboard-all-tags)');
+            
+            // 获取选中的标签
+            if (allTagsCheckbox.checked) {
+                dashboardFilteredTags = [];
+                individualCheckboxes.forEach(cb => cb.checked = true);
+            } else {
+                dashboardFilteredTags = Array.from(individualCheckboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+            }
+            
+            // 更新数据显示
+            getAllNotes().then(notes => {
+                updateDashboardData(notes);
+            }).catch(error => {
+                logError('Failed to update dashboard data after filter change', error);
+            });
+        }
+
+        // 更新仪表盘数据显示
+        function updateDashboardData(allNotes) {
+            // 根据选中的标签筛选笔记
+            let filteredNotes = allNotes;
+            if (dashboardFilteredTags.length > 0) {
+                filteredNotes = allNotes.filter(note => {
+                    return note.tags && note.tags.some(tag => dashboardFilteredTags.includes(tag));
+                });
+            }
+            
+            // 统计掌握程度
+            const proficiencyCounts = [0, 0, 0]; // [低, 中, 高]
+            filteredNotes.forEach(note => {
+                if (note.proficiency >= 1 && note.proficiency <= 3) {
+                    proficiencyCounts[note.proficiency - 1]++;
+                }
+            });
+            
+            const totalCount = filteredNotes.length;
+            
+            // 更新统计数字
+            document.getElementById('dashboard-total-notes').textContent = totalCount;
+            document.getElementById('dashboard-low-notes').textContent = proficiencyCounts[0];
+            document.getElementById('dashboard-medium-notes').textContent = proficiencyCounts[1];
+            document.getElementById('dashboard-high-notes').textContent = proficiencyCounts[2];
+            
+            // 更新百分比
+            const lowPercentage = totalCount > 0 ? Math.round((proficiencyCounts[0] / totalCount) * 100) : 0;
+            const mediumPercentage = totalCount > 0 ? Math.round((proficiencyCounts[1] / totalCount) * 100) : 0;
+            const highPercentage = totalCount > 0 ? Math.round((proficiencyCounts[2] / totalCount) * 100) : 0;
+            
+            document.getElementById('dashboard-low-percentage').textContent = `${lowPercentage}%`;
+            document.getElementById('dashboard-medium-percentage').textContent = `${mediumPercentage}%`;
+            document.getElementById('dashboard-high-percentage').textContent = `${highPercentage}%`;
+            
+            // 绘制饼状图
+            drawPieChart(proficiencyCounts);
+            
+            // 更新最近活动
+            updateDashboardRecentActivity();
+        }
+
+        // 绘制饼状图
+        function drawPieChart(proficiencyCounts) {
+            const canvas = document.getElementById('proficiency-pie-chart');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 20;
+            
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const total = proficiencyCounts.reduce((sum, count) => sum + count, 0);
+            const emptyState = document.getElementById('chart-empty-state');
+            
+            if (total === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+            
+            const colors = ['#f87171', '#fbbf24', '#34d399']; // 红、黄、绿
+            const labels = ['低', '中', '高'];
+            
+            let currentAngle = -Math.PI / 2; // 从顶部开始
+            
+            // 绘制饼状图扇形
+            proficiencyCounts.forEach((count, index) => {
+                if (count > 0) {
+                    const sliceAngle = (count / total) * 2 * Math.PI;
+                    
+                    // 绘制扇形
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+                    ctx.closePath();
+                    ctx.fillStyle = colors[index];
+                    ctx.fill();
+                    
+                    // 绘制边框
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    
+                    // 绘制百分比标签（如果扇形足够大）
+                    if (sliceAngle > 0.3) { // 约17度
+                        const percentage = Math.round((count / total) * 100);
+                        const labelAngle = currentAngle + sliceAngle / 2;
+                        const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
+                        const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 14px Inter, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(`${percentage}%`, labelX, labelY);
+                    }
+                    
+                    currentAngle += sliceAngle;
+                }
+            });
+            
+            // 绘制中心文字
+            ctx.fillStyle = '#374151';
+            ctx.font = 'bold 16px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('总计', centerX, centerY - 10);
+            ctx.font = 'bold 20px Inter, sans-serif';
+            ctx.fillText(total.toString(), centerX, centerY + 10);
+        }
+
+        // 更新仪表盘最近活动
+        function updateDashboardRecentActivity() {
+            getAllLogs().then(logs => {
+                const recentActivity = document.getElementById('dashboard-recent-activity');
+                recentActivity.innerHTML = '';
+                
+                // 取最近3条日志
+                const recentLogs = logs.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+                
+                if (recentLogs.length === 0) {
+                    recentActivity.innerHTML = `
+                        <div class="text-center text-gray-500 py-2">
+                            <p class="text-xs">暂无复习活动</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                recentLogs.forEach(log => {
+                    const totalReviews = log.count1 + log.count2 + log.count3;
+                    const date = new Date(log.date);
+                    const formattedDate = date.toLocaleDateString();
+                    
+                    const item = document.createElement('div');
+                    item.className = 'p-2 bg-gray-50 rounded text-xs';
+                    item.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-medium text-gray-700">复习 ${totalReviews} 条</span>
+                            <span class="text-gray-500">${formattedDate}</span>
+                        </div>
+                        <div class="flex space-x-1">
+                            <span class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded">低:${log.count1}</span>
+                            <span class="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">中:${log.count2}</span>
+                            <span class="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">高:${log.count3}</span>
+                        </div>
+                    `;
+                    
+                    recentActivity.appendChild(item);
+                });
+            }).catch(error => {
+                logError('Failed to update dashboard recent activity', error);
+            });
+        }
+
+        // 开始复习
+        function startReview() {
+            try {
+                // 获取选中的标签
+                const selectedReviewTags = Array.from(document.querySelectorAll('.review-tag-checkbox:checked')).map(el => el.value);
+                
+                // 获取选中的掌握程度
+                const includeLow = document.getElementById('proficiency-low').checked;
+                const includeMedium = document.getElementById('proficiency-medium').checked;
+                const includeHigh = document.getElementById('proficiency-high').checked;
+                
+                // 获取符合条件的笔记
+                getNotesByTags(selectedReviewTags).then(notes => {
+                    // 筛选掌握程度
+                    const filteredNotes = notes.filter(note => {
+                        if (note.proficiency === 1 && includeLow) return true;
+                        if (note.proficiency === 2 && includeMedium) return true;
+                        if (note.proficiency === 3 && includeHigh) return true;
+                        return false;
+                    });
+                    
+                    if (filteredNotes.length === 0) {
+                        showToast('没有符合条件的笔记');
+                        return;
+                    }
+                    
+                    // 随机排序笔记
+                    currentReviewNotes = [...filteredNotes].sort(() => Math.random() - 0.5);
+                    currentReviewIndex = 0;
+                    
+                    // 显示复习卡片
+                    document.getElementById('review-card-container').classList.remove('hidden');
+                    document.getElementById('review-progress-text').textContent = `复习进度: ${currentReviewIndex + 1}/${currentReviewNotes.length}`;
+                    
+                    // 加载第一张卡片
+                    loadReviewCard();
+                }).catch(error => {
+                    logError('Failed to start review', error);
+                    showToast('开始复习失败', 'error');
+                });
+            } catch (error) {
+                logError('Exception in startReview', error);
+                showToast('开始复习失败', 'error');
+            }
+        }
+
+        // 加载复习卡片（改进版，支持图片）
+        function loadReviewCard() {
+            if (currentReviewIndex >= currentReviewNotes.length) {
+                finishReview();
+                return;
+            }
+            
+            try {
+                const note = currentReviewNotes[currentReviewIndex];
+                
+                // 设置文本内容
+                document.getElementById('card-front-text').textContent = note.front;
+                document.getElementById('card-back-text').textContent = note.back;
+                
+                // 设置图片内容
+                const frontImageContainer = document.getElementById('card-front-image');
+                const backImageContainer = document.getElementById('card-back-image');
+                
+                frontImageContainer.innerHTML = '';
+                backImageContainer.innerHTML = '';
+                
+                if (note.frontImage) {
+                    const frontImg = document.createElement('img');
+                    frontImg.src = note.frontImage;
+                    frontImg.className = 'max-w-full max-h-40 rounded-lg shadow-md';
+                    frontImageContainer.appendChild(frontImg);
+                }
+                
+                if (note.backImage) {
+                    const backImg = document.createElement('img');
+                    backImg.src = note.backImage;
+                    backImg.className = 'max-w-full max-h-40 rounded-lg shadow-md';
+                    backImageContainer.appendChild(backImg);
+                }
+                
+                // 显示标签
+                const cardTags = document.getElementById('card-tags');
+                cardTags.innerHTML = (note.tags || []).map(tag => `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs mr-1">${tag}</span>`).join('');
+                
+                // 重置卡片状态
+                const reviewCard = document.getElementById('review-card');
+                reviewCard.classList.remove('card-flip-active');
+                document.getElementById('proficiency-rating').classList.add('hidden');
+            } catch (error) {
+                logError('Exception in loadReviewCard', error);
+                showToast('加载复习卡片失败', 'error');
+            }
+        }
+
+        // 完成复习
+        function finishReview() {
+            try {
+                // 记录日志
+                const log = {
+                    date: new Date().toISOString(),
+                    tags: [...new Set(currentReviewNotes.flatMap(note => note.tags || []))],
+                    count1: currentReviewNotes.filter(note => note.proficiency === 1).length,
+                    count2: currentReviewNotes.filter(note => note.proficiency === 2).length,
+                    count3: currentReviewNotes.filter(note => note.proficiency === 3).length
+                };
+                
+                addLog(log).catch(error => {
+                    logError('Failed to add review log', error);
+                });
+                
+                // 隐藏复习卡片
+                document.getElementById('review-card-container').classList.add('hidden');
+                
+                // 显示完成消息
+                showToast(`复习完成！共复习了 ${currentReviewNotes.length} 条笔记`);
+                
+                // 重置复习状态
+                currentReviewNotes = [];
+                currentReviewIndex = 0;
+                
+                // 更新仪表盘
+                updateDashboard();
+            } catch (error) {
+                logError('Exception in finishReview', error);
+                showToast('完成复习失败', 'error');
+            }
+        }
+
+        // 设置掌握程度
+        function setProficiency(value) {
+            try {
+                if (currentReviewIndex < currentReviewNotes.length) {
+                    const note = currentReviewNotes[currentReviewIndex];
+                    note.proficiency = value;
+                    note.lastReviewed = new Date().toISOString();
+                    
+                    // 更新数据库
+                    updateNote(note).catch(error => {
+                        logError('Failed to update note proficiency', error);
+                    });
+                    
+                    // 加载下一张卡片
+                    currentReviewIndex++;
+                    document.getElementById('review-progress-text').textContent = `复习进度: ${currentReviewIndex + 1}/${currentReviewNotes.length}`;
+                    loadReviewCard();
+                }
+            } catch (error) {
+                logError('Exception in setProficiency', error);
+                showToast('设置掌握程度失败', 'error');
+            }
+        }
+
+        // 导出数据（改进版，包含图片）
+        function exportData() {
+            try {
+                Promise.all([getAllNotes(), getAllLogs()]).then(([notes, logs]) => {
+                    const data = {
+                        notes,
+                        logs,
+                        exportDate: new Date().toISOString(),
+                        version: '2.0' // 更新版本号以标识支持图片
+                    };
+                    
+                    const jsonData = JSON.stringify(data, null, 2);
+                    const blob = new Blob([jsonData], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `学习笔记备份_${new Date().toISOString().slice(0,10)}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    showToast('数据导出成功');
+                }).catch(error => {
+                    logError('Failed to export data', error);
+                    showToast('数据导出失败', 'error');
+                });
+            } catch (error) {
+                logError('Exception in exportData', error);
+                showToast('数据导出失败', 'error');
+            }
+        }
+
+        // 导入数据（改进版，支持图片）
+        function importData(file) {
+            if (!file) {
+                showToast('请选择要导入的文件', 'error');
+                return;
+            }
+            
+            try {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        // 验证数据格式
+                        if (!data.notes || !Array.isArray(data.notes)) {
+                            throw new Error('Invalid data format: notes array not found');
+                        }
+                        
+                        showConfirmDialog(
+                            '确认导入', 
+                            '导入将覆盖当前所有数据。是否继续？', 
+                            () => {
+                                // 清空现有数据
+                                const transaction = db.transaction(['notes', 'logs'], 'readwrite');
+                                transaction.objectStore('notes').clear();
+                                transaction.objectStore('logs').clear();
+                                
+                                transaction.oncomplete = () => {
+                                    // 导入新数据
+                                    const importTransaction = db.transaction(['notes', 'logs'], 'readwrite');
+                                    const notesStore = importTransaction.objectStore('notes');
+                                    const logsStore = importTransaction.objectStore('logs');
+                                    
+                                    let notesAdded = 0;
+                                    let logsAdded = 0;
+                                    
+                                    if (data.notes && Array.isArray(data.notes)) {
+                                        data.notes.forEach(note => {
+                                            // 验证笔记数据
+                                            if (note.front && note.back) {
+                                                notesStore.add({
+                                                    front: note.front,
+                                                    back: note.back,
+                                                    frontImage: note.frontImage || null,
+                                                    backImage: note.backImage || null,
+                                                    tags: note.tags || [],
+                                                    proficiency: note.proficiency || 2,
+                                                    createdAt: note.createdAt || new Date().toISOString(),
+                                                    lastReviewed: note.lastReviewed || null
+                                                });
+                                                notesAdded++;
+                                            }
+                                        });
+                                    }
+                                    
+                                    if (data.logs && Array.isArray(data.logs)) {
+                                        data.logs.forEach(log => {
+                                            // 验证日志数据
+                                            if (log.date) {
+                                                logsStore.add({
+                                                    date: log.date,
+                                                    tags: log.tags || [],
+                                                    count1: log.count1 || 0,
+                                                    count2: log.count2 || 0,
+                                                    count3: log.count3 || 0
+                                                });
+                                                logsAdded++;
+                                            }
+                                        });
+                                    }
+                                    
+                                    importTransaction.oncomplete = () => {
+                                        // 更新UI
+                                        allTags.clear();
+                                        loadNotes(); // 使用新的加载系统
+                                        loadTags();
+                                        loadLogs();
+                                        updateDashboard();
+                                        showToast(`数据导入成功！导入了 ${notesAdded} 条笔记和 ${logsAdded} 条日志`);
+                                    };
+                                    
+                                    importTransaction.onerror = (event) => {
+                                        const error = event.target.error;
+                                        logError('Import transaction failed', error);
+                                        showToast('数据导入失败', 'error');
+                                    };
+                                };
+                                
+                                transaction.onerror = (event) => {
+                                    const error = event.target.error;
+                                    logError('Clear database for import failed', error);
+                                    showToast('清空数据库失败', 'error');
+                                };
+                            }
+                        );
+                    } catch (error) {
+                        logError('Failed to parse import file', error);
+                        showToast('文件格式不正确', 'error');
+                    }
+                };
+                
+                reader.onerror = () => {
+                    logError('Failed to read import file');
+                    showToast('读取文件失败', 'error');
+                };
+                
+                reader.readAsText(file);
+            } catch (error) {
+                logError('Exception in importData', error);
+                showToast('导入数据失败', 'error');
+            }
+        }
+
+        // 显示提示消息
+        function showToast(message, type = 'success') {
+            try {
+                const toast = document.getElementById('toast');
+                const toastMessage = document.getElementById('toast-message');
+                const toastIcon = document.getElementById('toast-icon');
+                
+                toastMessage.textContent = message;
+                
+                // 设置图标
+                if (type === 'success') {
+                    toastIcon.className = 'fa fa-check-circle mr-2';
+                    toast.classList.remove('bg-red-500');
+                    toast.classList.add('bg-gray-800');
+                } else {
+                    toastIcon.className = 'fa fa-exclamation-circle mr-2';
+                    toast.classList.remove('bg-gray-800');
+                    toast.classList.add('bg-red-500');
+                }
+                
+                // 显示提示
+                toast.classList.remove('translate-y-16', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+                
+                // 3秒后隐藏提示
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-16', 'opacity-0');
+                }, 3000);
+            } catch (error) {
+                logError('Exception in showToast', error);
+            }
+        }
+
+        // 显示确认对话框
+        function showConfirmDialog(title, message, confirmCallback) {
+            try {
+                document.getElementById('confirm-title').textContent = title;
+                document.getElementById('confirm-message').textContent = message;
+                document.getElementById('confirm-btn').onclick = () => {
+                    confirmCallback();
+                    document.getElementById('confirm-dialog').style.display = 'none';
+                };
+                document.getElementById('confirm-dialog').style.display = 'flex';
+            } catch (error) {
+                logError('Exception in showConfirmDialog', error);
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 全局错误处理
+            window.addEventListener('error', (event) => {
+                logError('Global error', event.error);
+            });
+            
+            window.addEventListener('unhandledrejection', (event) => {
+                logError('Unhandled promise rejection', event.reason);
+            });
+
+            initDatabase().then(() => {
+                logDebug('Application initialized successfully');
+                showToast('应用初始化成功');
+            }).catch(error => {
+                logError('Application initialization failed', error);
+                showToast('数据库初始化失败，请尝试刷新页面或清除浏览器数据', 'error');
+            });
+
+            // 初始化图片上传功能
+            setupImageUpload('front-image-upload', 'front-image-input', 'front-image-preview');
+            setupImageUpload('back-image-upload', 'back-image-input', 'back-image-preview');
+            
+            // 初始化仪表盘标签筛选
+            const dashboardAllTags = document.getElementById('dashboard-all-tags');
+            if (dashboardAllTags) {
+                dashboardAllTags.addEventListener('change', (e) => {
+                    const individualCheckboxes = document.querySelectorAll('.dashboard-tag-filter:not(#dashboard-all-tags)');
+                    individualCheckboxes.forEach(cb => {
+                        cb.checked = e.target.checked;
+                    });
+                    onDashboardTagFilterChange();
+                });
+            }
+            
+            // 移动端菜单切换
+            document.getElementById('menu-toggle').addEventListener('click', () => {
+                const mobileMenu = document.getElementById('mobile-menu');
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            // 调试按钮点击事件
+            document.getElementById('debug-btn').addEventListener('click', () => {
+                updateDebugInfo();
+                document.getElementById('debug-modal').style.display = 'flex';
+            });
+            
+            // 关闭调试模态框
+            document.getElementById('close-debug-modal-btn').addEventListener('click', () => {
+                document.getElementById('debug-modal').style.display = 'none';
+            });
+            
+            // 清空数据库按钮
+            document.getElementById('clear-db-btn').addEventListener('click', () => {
+                showConfirmDialog('确认清空数据库', '这将删除所有笔记和日志，此操作不可撤销！', () => {
+                    clearDatabase().then(() => {
+                        showToast('数据库已清空');
+                        updateDebugInfo();
+                    }).catch(error => {
+                        logError('Failed to clear database', error);
+                        showToast('清空数据库失败', 'error');
+                    });
+                });
+            });
+            
+            // 重新初始化数据库按钮
+            document.getElementById('reinit-db-btn').addEventListener('click', () => {
+                showConfirmDialog('确认重新初始化', '这将删除并重新创建数据库，所有数据将丢失！', () => {
+                    reinitializeDatabase().then(() => {
+                        showToast('数据库重新初始化成功');
+                        updateDebugInfo();
+                    }).catch(error => {
+                        logError('Failed to reinitialize database', error);
+                        showToast('重新初始化数据库失败', 'error');
+                    });
+                });
+            });
+            
+            // 添加笔记按钮点击事件
+            document.getElementById('add-note-btn').addEventListener('click', () => {
+                try {
+                    // 重置表单
+                    document.getElementById('note-form').reset();
+                    document.getElementById('note-id').value = '';
+                    selectedTags = [];
+                    renderSelectedTags();
+                    document.getElementById('modal-title').textContent = '添加笔记';
+                    
+                    // 重置图片
+                    frontImageData = null;
+                    backImageData = null;
+                    document.getElementById('front-image-preview').classList.add('hidden');
+                    document.getElementById('back-image-preview').classList.add('hidden');
+                    document.getElementById('front-upload-text').classList.remove('hidden');
+                    document.getElementById('back-upload-text').classList.remove('hidden');
+                    document.getElementById('front-image-input').value = '';
+                    document.getElementById('back-image-input').value = '';
+                    
+                    // 显示模态框
+                    document.getElementById('note-modal').style.display = 'flex';
+                } catch (error) {
+                    logError('Exception in add note button click', error);
+                    showToast('打开添加笔记模态框失败', 'error');
+                }
+            });
+            
+            // 关闭模态框按钮点击事件
+            document.getElementById('close-modal-btn').addEventListener('click', () => {
+                document.getElementById('note-modal').style.display = 'none';
+            });
+            
+            // 取消笔记按钮点击事件
+            document.getElementById('cancel-note-btn').addEventListener('click', () => {
+                document.getElementById('note-modal').style.display = 'none';
+            });
+            
+            // 笔记表单提交事件（改进版，支持图片）
+            document.getElementById('note-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                try {
+                    const id = document.getElementById('note-id').value;
+                    const front = document.getElementById('note-front').value.trim();
+                    const back = document.getElementById('note-back').value.trim();
+                    const proficiencyEl = document.querySelector('input[name="proficiency"]:checked');
+                    
+                    if (!front || !back) {
+                        showToast('正面和背面内容不能为空', 'error');
+                        return;
+                    }
+                    
+                    if (!proficiencyEl) {
+                        showToast('请选择掌握程度', 'error');
+                        return;
+                    }
+                    
+                    const proficiency = parseInt(proficiencyEl.value);
+                    
+                    const note = {
+                        front,
+                        back,
+                        frontImage: frontImageData,
+                        backImage: backImageData,
+                        tags: selectedTags,
+                        proficiency,
+                        createdAt: new Date().toISOString(),
+                        lastReviewed: null
+                    };
+                    
+                    if (id) {
+                        // 更新现有笔记
+                        note.id = parseInt(id);
+                        updateNote(note).then(() => {
+                            document.getElementById('note-modal').style.display = 'none';
+                        }).catch(error => {
+                            logError('Failed to update note from form', error);
+                            showToast('更新笔记失败', 'error');
+                        });
+                    } else {
+                        // 添加新笔记
+                        addNote(note).then(() => {
+                            document.getElementById('note-modal').style.display = 'none';
+                        }).catch(error => {
+                            logError('Failed to add note from form', error);
+                            showToast('添加笔记失败', 'error');
+                        });
+                    }
+                } catch (error) {
+                    logError('Exception in note form submit', error);
+                    showToast('保存笔记失败', 'error');
+                }
+            });
+            
+            // 添加标签按钮点击事件
+            document.getElementById('add-tag-btn').addEventListener('click', () => {
+                try {
+                    const tagInput = document.getElementById('new-tag-input');
+                    const tag = tagInput.value.trim();
+                    
+                    if (tag && !selectedTags.includes(tag)) {
+                        selectedTags.push(tag);
+                        renderSelectedTags();
+                        tagInput.value = '';
+                    }
+                    
+                    tagInput.focus();
+                } catch (error) {
+                    logError('Exception in add tag button click', error);
+                    showToast('添加标签失败', 'error');
+                }
+            });
+            
+            // 新标签输入框事件
+            const newTagInput = document.getElementById('new-tag-input');
+            newTagInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('add-tag-btn').click();
+                }
+            });
+            
+            // 显示/隐藏标签下拉菜单
+            newTagInput.addEventListener('focus', () => {
+                if (allTags.size > 0) {
+                    document.getElementById('tag-dropdown').classList.remove('hidden');
+                }
+            });
+            
+            newTagInput.addEventListener('blur', () => {
+                // 延迟隐藏以确保点击标签按钮能生效
+                setTimeout(() => {
+                    document.getElementById('tag-dropdown').classList.add('hidden');
+                }, 200);
+            });
+            
+            // 高级筛选相关事件
+            document.getElementById('advanced-search-btn').addEventListener('click', () => {
+                const panel = document.getElementById('advanced-search-panel');
+                panel.classList.toggle('hidden');
+            });
+            
+            document.getElementById('close-advanced-search-btn').addEventListener('click', () => {
+                document.getElementById('advanced-search-panel').classList.add('hidden');
+            });
+            
+            document.getElementById('apply-filters-btn').addEventListener('click', applyAdvancedFilters);
+            document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
+            
+            // 视图切换事件
+            document.getElementById('card-view-btn').addEventListener('click', () => switchView('grid'));
+            document.getElementById('list-view-btn').addEventListener('click', () => switchView('list'));
+            
+            // 每页显示数量切换
+            document.getElementById('page-size-select').addEventListener('change', (e) => {
+                pageSize = parseInt(e.target.value);
+                currentPage = 1;
+                updateNotesDisplay();
+                updatePagination();
+            });
+            
+            // 分页事件
+            document.getElementById('first-page-btn').addEventListener('click', () => goToPage(1));
+            document.getElementById('prev-page-btn').addEventListener('click', () => goToPage(currentPage - 1));
+            document.getElementById('next-page-btn').addEventListener('click', () => goToPage(currentPage + 1));
+            document.getElementById('last-page-btn').addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredNotes.length / pageSize);
+                goToPage(totalPages);
+            });
+            
+            // 搜索事件（使用防抖）
+            let searchTimeout;
+            document.getElementById('note-search').addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    currentPage = 1;
+                    loadNotes();
+                }, 300);
+            });
+            
+            // 卡片点击事件（翻转卡片）
+            document.getElementById('review-card').addEventListener('click', () => {
+                try {
+                    const reviewCard = document.getElementById('review-card');
+                    reviewCard.classList.toggle('card-flip-active');
+                    
+                    // 显示评分按钮
+                    if (reviewCard.classList.contains('card-flip-active')) {
+                        setTimeout(() => {
+                            document.getElementById('proficiency-rating').classList.remove('hidden');
+                        }, 300);
+                    } else {
+                        document.getElementById('proficiency-rating').classList.add('hidden');
+                    }
+                } catch (error) {
+                    logError('Exception in review card click', error);
+                }
+            });
+            
+            // 掌握程度评分按钮点击事件
+            document.querySelectorAll('.rating-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    try {
+                        const value = parseInt(btn.dataset.value);
+                        setProficiency(value);
+                    } catch (error) {
+                        logError('Exception in rating button click', error);
+                        showToast('设置掌握程度失败', 'error');
+                    }
+                });
+            });
+            
+            // 开始复习按钮点击事件
+            document.getElementById('start-review-btn').addEventListener('click', startReview);
+            
+            // 结束复习按钮点击事件
+            document.getElementById('end-review-btn').addEventListener('click', () => {
+                showConfirmDialog(
+                    '确认结束', 
+                    '你确定要结束当前的复习吗？', 
+                    () => {
+                        document.getElementById('review-card-container').classList.add('hidden');
+                        currentReviewNotes = [];
+                        currentReviewIndex = 0;
+                    }
+                );
+            });
+            
+            // 数据备份按钮点击事件
+            document.getElementById('backup-btn').addEventListener('click', () => {
+                document.getElementById('backup-modal').style.display = 'flex';
+            });
+            
+            // 关闭备份模态框按钮点击事件
+            document.getElementById('close-backup-modal-btn').addEventListener('click', () => {
+                document.getElementById('backup-modal').style.display = 'none';
+            });
+            
+            // 导出数据按钮点击事件
+            document.getElementById('export-data-btn').addEventListener('click', exportData);
+            
+            // 导入数据按钮点击事件
+            document.getElementById('import-data-btn').addEventListener('click', () => {
+                try {
+                    const fileInput = document.getElementById('import-data-file');
+                    if (fileInput.files.length === 0) {
+                        showToast('请选择要导入的文件', 'error');
+                        return;
+                    }
+                    importData(fileInput.files[0]);
+                    document.getElementById('backup-modal').style.display = 'none';
+                } catch (error) {
+                    logError('Exception in import data button click', error);
+                    showToast('导入数据失败', 'error');
+                }
+            });
+            
+            // 取消确认对话框按钮点击事件
+            document.getElementById('cancel-confirm-btn').addEventListener('click', () => {
+                document.getElementById('confirm-dialog').style.display = 'none';
+            });
+            
+            // 清空日志按钮点击事件
+            document.getElementById('clear-logs-btn').addEventListener('click', () => {
+                showConfirmDialog(
+                    '确认清空', 
+                    '你确定要清空所有复习日志吗？此操作不可撤销。', 
+                    () => {
+                        try {
+                            const transaction = db.transaction(['logs'], 'readwrite');
+                            transaction.objectStore('logs').clear();
+                            
+                            transaction.oncomplete = () => {
+                                loadLogs();
+                                updateDashboard();
+                                showToast('日志已清空');
+                            };
+                            
+                            transaction.onerror = (event) => {
+                                const error = event.target.error;
+                                logError('Failed to clear logs', error);
+                                showToast('清空日志失败', 'error');
+                            };
+                        } catch (error) {
+                            logError('Exception in clear logs', error);
+                            showToast('清空日志失败', 'error');
+                        }
+                    }
+                );
+            });
+            
+            // 滚动时改变导航栏样式
+            window.addEventListener('scroll', () => {
+                try {
+                    const header = document.getElementById('main-header');
+                    if (window.scrollY > 10) {
+                        header.classList.add('py-2');
+                        header.classList.remove('py-3');
+                    } else {
+                        header.classList.add('py-3');
+                        header.classList.remove('py-2');
+                    }
+                } catch (error) {
+                    logError('Exception in scroll handler', error);
+                }
+            });
+            
+            // 搜索笔记
+            document.getElementById('note-search').addEventListener('input', (e) => {
+                try {
+                    const searchTerm = e.target.value.toLowerCase();
+                    if (!searchTerm) {
+                        loadNotes();
+                        return;
+                    }
+                    
+                    getAllNotes().then(notes => {
+                        const filteredNotes = notes.filter(note => 
+                            note.front.toLowerCase().includes(searchTerm) || 
+                            note.back.toLowerCase().includes(searchTerm) || 
+                            (note.tags && note.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
+                        );
+                        
+                        renderNotes(filteredNotes);
+                    }).catch(error => {
+                        logError('Failed to search notes', error);
+                        showToast('搜索笔记失败', 'error');
+                    });
+                } catch (error) {
+                    logError('Exception in note search', error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
